@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8" ?><ChoregrapheProject xmlns="http://www.aldebaran-robotics.com/schema/choregraphe/project.xsd" xar_version="3"><Box name="root" id="-1" localization="8" tooltip="Root box of Choregraphe&apos;s behavior. Highest level possible." x="0" y="0"><bitmap>media/images/box/root.png</bitmap><script language="4"><content><![CDATA[]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="指令盒行为结束时，送出信号。" id="4" /><Timeline enable="0"><BehaviorLayer name="behavior_layer1"><BehaviorKeyframe name="keyframe1" index="1"><Diagram scale="237.841"><Box name="_拍照并显示" id="2" localization="8" tooltip="在此输入说明" x="220" y="89"><bitmap>media/images/box/box-diagram.png</bitmap><script language="4"><content><![CDATA[]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="Start" type="1" type_size="1" nature="2" inner="0" tooltip="This input has been automatically generated&#x0A;by converting several boxes into a single box." id="2" /><Output name="over" type="1" type_size="1" nature="2" inner="0" tooltip="" id="3" /><Timeline enable="0"><BehaviorLayer name="behavior_layer1"><BehaviorKeyframe name="keyframe1" index="1"><Diagram scale="141.421"><Box name="_拍照" id="1" localization="8" tooltip="Take a picture with one of the cameras camera and store it in his memory in ~/recordings/cameras. The image format is JPG.&#x0A;&#x0A;V1.1.0&#x0A;" x="217" y="63"><bitmap>media/images/box/interaction/picture.png</bitmap><script language="4"><content><![CDATA[import time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+        self.resolutionMap = {
+            '160 x 120': 0,
+            '320 x 240': 1,
+            '640 x 480': 2,
+            '1280 x 960': 3
+        }
+        self.cameraMap = {
+            'Top': 0,
+            'Bottom': 1
+        }
+
+        #self.recordFolder = "/home/nao/recordings/cameras/"
+        self.recordFolder = "/home/nao/"
+
+    def onLoad(self):
+        self.framemanager = ALProxy("ALFrameManager")
+        #self.tabletService = ALproxy("ALTabletService")
+
+        self.bIsRunning = False
+        try:
+            self.photoCapture = ALProxy( "ALPhotoCapture" )
+        except Exception as e:
+            self.photoCapture = None
+            self.logger.error(e)
+
+    def onUnload(self):
+        pass
+
+    def onInput_onStart(self):
+        import os
+        self.recordFolder = os.path.join(
+        self.framemanager.getBehaviorPath(self.behaviorId), "../html")
+        if( self.bIsRunning ):
+            return
+        self.bIsRunning = True
+        resolution = self.resolutionMap[self.getParameter("Resolution")]
+        cameraID = self.cameraMap[self.getParameter("Camera")]
+        fileName = self.getParameter("File Name")
+        time_ = str(int(time.time()))
+        fileName += str(time_)
+        self.logger.info(fileName)
+        self.time(time_)
+        if self.photoCapture:
+            self.photoCapture.setResolution(resolution)
+            self.photoCapture.setCameraID(cameraID)
+            self.photoCapture.setPictureFormat("jpg")
+            self.photoCapture.takePicture( self.recordFolder, fileName )
+
+
+        #self.tabletService.showImage("/home/nao/test.jpg")
+        self.bIsRunning = False
+        self.onStopped()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="3" /><Output name="time" type="3" type_size="1" nature="2" inner="0" tooltip="" id="4" /><Parameter name="Resolution" inherits_from_parent="0" content_type="3" value="1280 x 960" default_value="640 x 480" custom_choice="0" tooltip="Image resolution." id="5"><Choice value="160 x 120" /><Choice value="320 x 240" /><Choice value="640 x 480" /><Choice value="1280 x 960" /></Parameter><Parameter name="File Name" inherits_from_parent="0" content_type="3" value="camera" default_value="image" custom_choice="0" tooltip="Name of the file without its extension." id="6" /><Parameter name="Camera" inherits_from_parent="0" content_type="3" value="Top" default_value="Top" custom_choice="0" tooltip="Enables to select the camera (Top or Bottom) that will take the picture." id="7"><Choice value="Top" /><Choice value="Bottom" /></Parameter></Box><Box name="Show Image" id="13" localization="8" tooltip="display an image on the screen&#x0A;&#x0A;V1.0.0&#x0A;" x="648" y="195"><bitmap>media/images/box/interaction/rec_movie.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+
+    def onLoad(self):
+        self.frameManager = None
+        try:
+            self.frameManager = ALProxy("ALFrameManager")
+        except Exception as e:
+            self.logger.error(e)
+
+    def onUnload(self):
+        pass
+
+    def _getTabletService(self):
+        tabletService = None
+        try:
+            tabletService = self.session().service("ALTabletService")
+        except Exception as e:
+            self.logger.error(e)
+        return tabletService
+
+    def _getAbsoluteUrl(self, partial_url):
+        import os
+        subPath = os.path.join(self.packageUid(), os.path.normpath(partial_url).lstrip("\\/"))
+        # We create TabletService here in order to avoid
+        # problems with connections and disconnections of the tablet during the life of the application
+        return "http://%s/apps/%s" %(self._getTabletService().robotIp(), subPath.replace(os.path.sep, "/"))
+
+    def onInput_onStart(self):
+        # We create TabletService here in order to avoid
+        # problems with connections and disconnections of the tablet during the life of the application
+        tabletService = self._getTabletService()
+        if tabletService:
+            try:
+                url = self.getParameter("ImageUrl")
+                url = "camera" + str(self.time_) + ".jpg"
+                self.logger.info(url)
+                if url == '':
+                    self.logger.error("URL of the image is empty")
+                if not url.startswith('http'):
+                    url = self._getAbsoluteUrl(url)
+                    self.logger.info(url)
+                tabletService.showImage(url)
+            except Exception as err:
+                self.logger.error("Error during ShowImage : %s " % err)
+                self.onStopped()
+        else:
+            self.logger.warning("No ALTabletService, can't display the image.")
+            self.onStopped()
+
+    def onInput_onHideImage(self):
+        # We create TabletService here in order to avoid
+        # problems with connections and disconnections of the tablet during the life of the application
+        tabletService = self._getTabletService()
+        if tabletService:
+            try:
+                tabletService.hideImage()
+            except Exception as err:
+                self.logger.error("Error during HideImage : %s " % err)
+                self.onStopped()
+        else:
+            self.logger.warning("No ALTabletService, can't hide the image.")
+            self.onStopped()
+
+    def onInput_onPreLoadImage(self):
+        # We create TabletService here in order to avoid
+        # problems with connections and disconnections of the tablet during the life of the application
+        tabletService = self._getTabletService()
+        if tabletService:
+            try:
+                partialUrl = self.getParameter("ImageUrl")
+                fullUrl = self._getAbsoluteUrl(partialUrl)
+                tabletService.preLoadImage(fullUrl)
+            except Exception as err:
+                self.logger.warning("Error during preLoadImage : %s " % err)
+                self.onStopped()
+        else:
+            self.logger.warning("No ALTabletService, can't preload the image.")
+            self.onStopped()
+
+    def onInput_input_time(self, time_):
+        self.time_ = time_
+
+    def onInput_onStop(self):
+        self.onUnload()
+        self.onStopped()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Input name="onHideImage" type="1" type_size="1" nature="1" inner="0" tooltip="Hide the image when a signal is received on this input." id="4" /><Input name="input_time" type="3" type_size="1" nature="1" inner="0" tooltip="" id="5" /><Input name="onPreLoadImage" type="1" type_size="1" nature="1" inner="0" tooltip="Preload the image when a signal is received on this input." id="6" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="7" /><Parameter name="ImageUrl" inherits_from_parent="0" content_type="3" value="camera.jpg" default_value="" custom_choice="0" tooltip='path of the image inside the &quot;html&quot; folder (e.g. &quot;/images/myimage.png&quot;' id="8" /></Box><Box name="_延时1s" id="14" localization="8" tooltip="Wait a moment before triggering the output. &#x0A;Can be stopped anytime. &#x0A;Multiple inputs will trigger multiple outputs." x="472" y="68"><bitmap>media/images/box/wait.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.delayed = []
+
+    def onUnload(self):
+        self.cancelDelays()
+
+    def cancelDelays(self):
+        cancel_list = list(self.delayed)
+        for d in cancel_list:
+            d.cancel()
+
+    def cleanDelay(self, fut, fut_ref):
+        self.delayed.remove(fut)
+
+    def triggerOutput(self):
+        self.timerOutput()
+
+    def onInput_onStart(self):
+        import qi
+        import functools
+        delay_future = qi.async(self.triggerOutput, delay=int(self.getParameter("Timeout (s)") * 1000 * 1000))
+        # keep the async operation in an array for cancel
+        # and remove it when it is finished in the callback
+        self.delayed.append(delay_future)
+        bound_clean = functools.partial(self.cleanDelay, delay_future)
+        delay_future.addCallback(bound_clean)
+
+    def onInput_onStop(self):
+        if self.getParameter("Trigger timerOutput if cancelled") and self.delayed:
+            self.timerOutput()
+        self.onUnload()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Start the Delay box with the configured timeout value." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Stop the wait and stimulate the output." id="3" /><Output name="timerOutput" type="1" type_size="1" nature="1" inner="0" tooltip="Send a bang once delay set in parameters is elapsed, or if the box is stopped and the appropriate parameter is set." id="4" /><Parameter name="Timeout (s)" inherits_from_parent="0" content_type="2" value="1" default_value="1" min="0" max="5000" tooltip="Duration the box waits before stimulating the output." id="5" /><Parameter name="Trigger timerOutput if cancelled" inherits_from_parent="0" content_type="0" value="0" default_value="1" tooltip="If the box is currently delaying at least one signal and cancelled, output will be stimulated." id="6" /></Box><Box name="_延时1s" id="2" localization="8" tooltip="Wait a moment before triggering the output. &#x0A;Can be stopped anytime. &#x0A;Multiple inputs will trigger multiple outputs." x="649" y="27"><bitmap>media/images/box/wait.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.delayed = []
+
+    def onUnload(self):
+        self.cancelDelays()
+
+    def cancelDelays(self):
+        cancel_list = list(self.delayed)
+        for d in cancel_list:
+            d.cancel()
+
+    def cleanDelay(self, fut, fut_ref):
+        self.delayed.remove(fut)
+
+    def triggerOutput(self):
+        self.timerOutput()
+
+    def onInput_onStart(self):
+        import qi
+        import functools
+        delay_future = qi.async(self.triggerOutput, delay=int(self.getParameter("Timeout (s)") * 1000 * 1000))
+        # keep the async operation in an array for cancel
+        # and remove it when it is finished in the callback
+        self.delayed.append(delay_future)
+        bound_clean = functools.partial(self.cleanDelay, delay_future)
+        delay_future.addCallback(bound_clean)
+
+    def onInput_onStop(self):
+        if self.getParameter("Trigger timerOutput if cancelled") and self.delayed:
+            self.timerOutput()
+        self.onUnload()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Start the Delay box with the configured timeout value." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Stop the wait and stimulate the output." id="3" /><Output name="timerOutput" type="1" type_size="1" nature="1" inner="0" tooltip="Send a bang once delay set in parameters is elapsed, or if the box is stopped and the appropriate parameter is set." id="4" /><Parameter name="Timeout (s)" inherits_from_parent="0" content_type="2" value="1" default_value="1" min="0" max="5000" tooltip="Duration the box waits before stimulating the output." id="5" /><Parameter name="Trigger timerOutput if cancelled" inherits_from_parent="0" content_type="0" value="0" default_value="1" tooltip="If the box is currently delaying at least one signal and cancelled, output will be stimulated." id="6" /></Box><Link inputowner="13" indexofinput="2" outputowner="14" indexofoutput="4" /><Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="2" /><Link inputowner="13" indexofinput="4" outputowner="1" indexofoutput="3" /><Link inputowner="14" indexofinput="2" outputowner="1" indexofoutput="3" /><Link inputowner="2" indexofinput="2" outputowner="14" indexofoutput="4" /><Link inputowner="0" indexofinput="3" outputowner="2" indexofoutput="4" /><Link inputowner="13" indexofinput="5" outputowner="1" indexofoutput="4" /></Diagram></BehaviorKeyframe></BehaviorLayer></Timeline></Box><Link inputowner="0" indexofinput="4" outputowner="2" indexofoutput="3" /><Link inputowner="2" indexofinput="2" outputowner="0" indexofoutput="2" /></Diagram></BehaviorKeyframe></BehaviorLayer></Timeline></Box></ChoregrapheProject>

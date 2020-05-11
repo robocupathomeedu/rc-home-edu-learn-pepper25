@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="UTF-8" ?><ChoregrapheProject xmlns="http://www.aldebaran-robotics.com/schema/choregraphe/project.xsd" xar_version="3"><Box name="root" id="-1" localization="8" tooltip="Root box of Choregraphe&apos;s behavior. Highest level possible." x="0" y="0"><bitmap>media/images/box/root.png</bitmap><script language="4"><content><![CDATA[]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="指令盒行为结束时，送出信号。" id="4" /><Timeline enable="0"><BehaviorLayer name="behavior_layer1"><BehaviorKeyframe name="keyframe1" index="1"><Diagram scale="168.179"><Box name="_检测年龄" id="7" localization="8" tooltip="在此输入说明" x="120" y="51"><bitmap>media/images/box/box-diagram.png</bitmap><script language="4"><content><![CDATA[]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="Start" type="1" type_size="1" nature="2" inner="0" tooltip="This input has been automatically generated&#x0A;by converting several boxes into a single box." id="2" /><Output name="Error" type="1" type_size="1" nature="2" inner="0" tooltip="" id="3" /><Output name="Over" type="1" type_size="1" nature="2" inner="0" tooltip="This output has been automatically generated&#x0A;by converting several boxes into a single box." id="4" /><Timeline enable="0"><BehaviorLayer name="behavior_layer1"><BehaviorKeyframe name="keyframe1" index="1"><Diagram scale="200"><Box name="Get Age" id="1" localization="8" tooltip="This box returns the age of the person in front of the robot.&#x0A;The detection fails when there are more or less than one person in front of the robot or when the timeout is exceeded.&#x0A;&#x0A;It is possible to set up the Confidence Threshold and the Timeout parameters for this box. " x="170" y="49"><bitmap>media/images/box/interaction/age.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+
+    def onLoad(self):
+        try:
+            self.faceC = ALProxy("ALFaceCharacteristics")
+        except Exception as e:
+            raise RuntimeError(str(e) + "Make sure you're not connected to a virtual robot." )
+        self.confidence = self.getParameter("Confidence Threshold")
+        self.age = 0
+        self.counter = 0
+        self.bIsRunning = False
+        self.delayed = []
+        self.errorMes = ""
+
+    def onUnload(self):
+        self.counter = 0
+        self.age = 0
+        self.bIsRunning = False
+        self.cancelDelays()
+
+    def onInput_onStart(self):
+        try:
+            #start timer
+            import qi
+            import functools
+            delay_future = qi.async(self.onTimeout, delay=int(self.getParameter("Timeout (s)") * 1000 * 1000))
+            self.delayed.append(delay_future)
+            bound_clean = functools.partial(self.cleanDelay, delay_future)
+            delay_future.addCallback(bound_clean)
+
+            self.bIsRunning = True
+            while self.bIsRunning:
+                if self.counter < 4:
+                    try:
+                        #identify user
+                        ids = ALMemory.getData("PeoplePerception/PeopleList")
+                        if len(ids) == 0:
+                            self.errorMes = "No face detected"
+                            self.onUnload()
+                        elif len(ids) > 1:
+                            self.errorMes = "Multiple faces detected"
+                            self.onUnload()
+                        else:
+                            #analyze age properties
+                            self.faceC.analyzeFaceCharacteristics(ids[0])
+                            time.sleep(0.1)
+                            value = ALMemory.getData("PeoplePerception/Person/"+str(ids[0])+"/AgeProperties")
+                            if value[1] > self.confidence:
+                                self.age += value[0]
+                                self.counter += 1
+                    except:
+                        ids = []
+                else:
+                    #calculate mean value
+                    self.age /= 4
+                    self.onStopped(int(self.age))
+                    self.onUnload()
+                    return
+            raise RuntimeError(self.errorMes)
+        except Exception as e:
+            raise RuntimeError(str(e))
+            self.onUnload()
+
+    def onTimeout(self):
+        self.errorMes = "Timeout"
+        self.onUnload()
+
+    def cleanDelay(self, fut, fut_ref):
+        self.delayed.remove(fut)
+
+    def cancelDelays(self):
+        cancel_list = list(self.delayed)
+        for d in cancel_list:
+            d.cancel()
+
+    def onInput_onStop(self):
+        self.onUnload()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Output name="onError" type="3" type_size="1" nature="1" inner="0" tooltip='Triggered when age detection failed. &#x0A;Possible error messages:&#x0A;- &quot;No face detected&quot;&#x0A;- &quot;Multiple faces detected&quot;&#x0A;- &quot;Timeout&quot;' id="4" /><Output name="onStopped" type="2" type_size="1" nature="1" inner="0" tooltip="Returns a number between 0 and 75 indicating the age of the person in front of the robot.&#x0A;&#x0A;Tip:&#x0A;Connect this output to If box to compare the age with a defined value" id="5" /><Parameter name="Confidence Threshold" inherits_from_parent="0" content_type="2" value="0.35" default_value="0.6" min="0" max="1" tooltip="Set the confidence threshold for the age detection." id="6" /><Parameter name="Timeout (s)" inherits_from_parent="0" content_type="2" value="10" default_value="5" min="1" max="60" tooltip="" id="7" /></Box><Box name="_说出人的年龄" id="2" localization="8" tooltip="Say the text received on its input." x="341" y="85"><bitmap>media/images/box/interaction/say.png</bitmap><script language="4"><content><![CDATA[import time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+        self.tts = ALProxy('ALTextToSpeech')
+        self.ttsStop = ALProxy('ALTextToSpeech', True) #Create another proxy as wait is blocking if audioout is remote
+
+    def onLoad(self):
+        self.bIsRunning = False
+        self.ids = []
+
+    def onUnload(self):
+        for id in self.ids:
+            try:
+                self.ttsStop.stop(id)
+            except:
+                pass
+        while( self.bIsRunning ):
+            time.sleep( 0.2 )
+
+    def onInput_onStart(self, p):
+        self.bIsRunning = True
+        try:
+            sentence = "\RSPD="+ str( self.getParameter("Speed (%)") ) + "\ "
+            sentence += "\VCT="+ str( self.getParameter("Voice shaping (%)") ) + "\ "
+            sentence += str("你看起来大概")
+            sentence += str(p)
+            sentence += str("岁")
+            sentence +=  "\RST\ "
+            id = self.tts.post.say(str(sentence))
+            self.ids.append(id)
+            self.tts.wait(id, 0)
+        finally:
+            try:
+                self.ids.remove(id)
+            except:
+                pass
+            if( self.ids == [] ):
+                self.onStopped() # activate output of the box
+                self.bIsRunning = False
+
+    def onInput_onStop(self):
+        self.onUnload()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" /><Input name="onStart" type="3" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this Input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this Input." id="3" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when Box behavior is finished." id="4" /><Parameter name="Voice shaping (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.' id="5" /><Parameter name="Speed (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed." id="6" /><Resource name="Speech" type="Lock" timeout="0" /></Box><Link inputowner="2" indexofinput="2" outputowner="1" indexofoutput="5" /><Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="2" /><Link inputowner="0" indexofinput="4" outputowner="2" indexofoutput="4" /><Link inputowner="0" indexofinput="3" outputowner="1" indexofoutput="4" /></Diagram></BehaviorKeyframe></BehaviorLayer></Timeline></Box><Box name="_识别性别" id="1" localization="8" tooltip="在此输入说明" x="285" y="101"><bitmap>media/images/box/box-diagram.png</bitmap><script language="4"><content><![CDATA[]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="Start" type="1" type_size="1" nature="2" inner="0" tooltip="This input has been automatically generated&#x0A;by converting several boxes into a single box." id="2" /><Output name="Error" type="1" type_size="1" nature="2" inner="0" tooltip="" id="3" /><Output name="Over" type="1" type_size="1" nature="2" inner="0" tooltip="This output has been automatically generated&#x0A;by converting several boxes into a single box." id="4" /><Timeline enable="0"><BehaviorLayer name="behavior_layer1"><BehaviorKeyframe name="keyframe1" index="1"><Diagram scale="200"><Box name="Get Gender" id="3" localization="8" tooltip="This box returns the gender of the person in front of the robot.&#x0A;The detection fails when there are more or less than one person in front of the robot or when the timeout is exceeded.&#x0A;&#x0A;It is possible to set up the Confidence Threshold and the Timeout parameters for this box. " x="187" y="38"><bitmap>media/images/box/interaction/gender.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+
+    def onLoad(self):
+        try:
+            self.faceC = ALProxy("ALFaceCharacteristics")
+        except Exception as e:
+            raise RuntimeError(str(e) + "Make sure you're not connected to a virtual robot." )
+        self.confidence = self.getParameter("Confidence Threshold")
+        self.gender = 0
+        self.counter = 0
+        self.bIsRunning = False
+        self.delayed = []
+        self.errorMes = ""
+
+    def onUnload(self):
+        self.counter = 0
+        self.gender = 0
+        self.bIsRunning = False
+        self.cancelDelays()
+
+    def onInput_onStart(self):
+        try:
+            #start timer
+            import qi
+            import functools
+            delay_future = qi.async(self.onTimeout, delay=int(self.getParameter("Timeout (s)") * 1000 * 1000))
+            self.delayed.append(delay_future)
+            bound_clean = functools.partial(self.cleanDelay, delay_future)
+            delay_future.addCallback(bound_clean)
+
+            self.bIsRunning = True
+            while self.bIsRunning:
+                if self.counter < 4:
+                    try:
+                        #identify user
+                        ids = ALMemory.getData("PeoplePerception/PeopleList")
+                        if len(ids) == 0:
+                            self.errorMes = "No face detected"
+                            self.onUnload()
+                        elif len(ids) > 1:
+                            self.errorMes = "Multiple faces detected"
+                            self.onUnload()
+                        else:
+                            #analyze gender properties
+                            self.faceC.analyzeFaceCharacteristics(ids[0])
+                            time.sleep(0.1)
+                            value = ALMemory.getData("PeoplePerception/Person/"+str(ids[0])+"/GenderProperties")
+                            if value[1] > self.confidence:
+                                self.gender += value[0]
+                                self.counter += 1
+                    except:
+                        ids = []
+                else:
+                    #calculate mean value
+                    self.gender /= 4
+                    if self.gender < 0.5:
+                        self.onStopped("female")
+                    else:
+                        self.onStopped("male")
+                    self.onUnload()
+                    return
+            raise RuntimeError(self.errorMes)
+        except Exception as e:
+            raise RuntimeError(str(e))
+            self.onUnload()
+
+    def onTimeout(self):
+        self.errorMes = "Timeout"
+        self.onUnload()
+
+    def cleanDelay(self, fut, fut_ref):
+        self.delayed.remove(fut)
+
+    def cancelDelays(self):
+        cancel_list = list(self.delayed)
+        for d in cancel_list:
+            d.cancel()
+
+    def onInput_onStop(self):
+        self.onUnload()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Output name="onError" type="3" type_size="1" nature="1" inner="0" tooltip='Triggered when gender detection failed. &#x0A;Possible error messages:&#x0A;- &quot;No face detected&quot;&#x0A;- &quot;Multiple faces detected&quot;&#x0A;- &quot;Timeout&quot;' id="4" /><Output name="onStopped" type="3" type_size="1" nature="1" inner="0" tooltip='Returns the gender of the person in front of the robot. &#x0A;- &quot;female&quot;&#x0A;- &quot;male&quot;&#x0A;&#x0A;Tip:&#x0A;Connect this output to a &quot;Switch Case&quot; box containing the possible output values as strings. In this way you can trigger different paths in your behavior depending on the output.' id="5" /><Parameter name="Confidence Threshold" inherits_from_parent="0" content_type="2" value="0.35" default_value="0.6" min="0" max="1" tooltip="Set the confidence threshold for the age detection." id="6" /><Parameter name="Timeout (s)" inherits_from_parent="0" content_type="2" value="10" default_value="5" min="1" max="60" tooltip="" id="7" /></Box><Box name="_说出人的性别" id="4" localization="8" tooltip="Say the text received on its input." x="367" y="81"><bitmap>media/images/box/interaction/say.png</bitmap><script language="4"><content><![CDATA[import time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+        self.tts = ALProxy('ALTextToSpeech')
+        self.ttsStop = ALProxy('ALTextToSpeech', True) #Create another proxy as wait is blocking if audioout is remote
+
+    def onLoad(self):
+        self.bIsRunning = False
+        self.ids = []
+
+    def onUnload(self):
+        for id in self.ids:
+            try:
+                self.ttsStop.stop(id)
+            except:
+                pass
+        while( self.bIsRunning ):
+            time.sleep( 0.2 )
+
+    def onInput_onStart(self, p):
+        if (p == "female"):
+            p = "你应该是女生"
+        else:
+            p = "你应该是男生"
+        self.bIsRunning = True
+        try:
+            sentence = "\RSPD="+ str( self.getParameter("Speed (%)") ) + "\ "
+            sentence += "\VCT="+ str( self.getParameter("Voice shaping (%)") ) + "\ "
+            sentence += str(p)
+            sentence +=  "\RST\ "
+            id = self.tts.post.say(str(sentence))
+            self.ids.append(id)
+            self.tts.wait(id, 0)
+        finally:
+            try:
+                self.ids.remove(id)
+            except:
+                pass
+            if( self.ids == [] ):
+                self.onStopped() # activate output of the box
+                self.bIsRunning = False
+
+    def onInput_onStop(self):
+        self.onUnload()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" /><Input name="onStart" type="3" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this Input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this Input." id="3" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when Box behavior is finished." id="4" /><Parameter name="Voice shaping (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.' id="5" /><Parameter name="Speed (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed." id="6" /><Resource name="Speech" type="Lock" timeout="0" /></Box><Link inputowner="4" indexofinput="2" outputowner="3" indexofoutput="5" /><Link inputowner="3" indexofinput="2" outputowner="0" indexofoutput="2" /><Link inputowner="0" indexofinput="4" outputowner="4" indexofoutput="4" /><Link inputowner="0" indexofinput="3" outputowner="3" indexofoutput="4" /></Diagram></BehaviorKeyframe></BehaviorLayer></Timeline></Box><Box name="_识别情绪" id="2" localization="8" tooltip="在此输入说明" x="448" y="139"><bitmap>media/images/box/box-diagram.png</bitmap><script language="4"><content><![CDATA[]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="Start" type="1" type_size="1" nature="2" inner="0" tooltip="This input has been automatically generated&#x0A;by converting several boxes into a single box." id="2" /><Output name="Error" type="1" type_size="1" nature="2" inner="0" tooltip="" id="3" /><Output name="Over" type="1" type_size="1" nature="2" inner="0" tooltip="This output has been automatically generated&#x0A;by converting several boxes into a single box." id="4" /><Timeline enable="0"><BehaviorLayer name="behavior_layer1"><BehaviorKeyframe name="keyframe1" index="1"><Diagram scale="200"><Box name="Get Expression" id="5" localization="8" tooltip="This box returns the detected facial expression of the person in front of the robot.&#x0A;The detection fails when there are more or less than one person in front of the robot or when the timeout is exceeded.&#x0A;&#x0A;It is possible to set up the Confidence Threshold and the Timeout parameters for this box. &#x0A;Furthermore it is possible to select the required emotions:&#x0A;- neutral&#x0A;- happy&#x0A;- surprised&#x0A;- angry&#x0A;- sad" x="158" y="53"><bitmap>media/images/box/interaction/emotion.png</bitmap><script language="4"><content><![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+
+    def onLoad(self):
+        try:
+            self.faceC = ALProxy("ALFaceCharacteristics")
+        except Exception as e:
+            raise RuntimeError(str(e) + "Make sure you're not connected to a virtual robot." )
+        self.confidence = self.getParameter("Confidence Threshold")
+        self.threshNeutralEmotion = self.confidence + 0.15
+        self.threshHappyEmotion = self.confidence
+        self.threshSurprisedEmotion = self.confidence + 0.05
+        self.threshAngryEmotion = self.confidence + 0.2
+        self.threshSadEmotion = self.confidence + 0.15
+        self.emotions = ["neutral", "happy", "surprised", "angry", "sad"]
+        self.counter = 0
+        self.bIsRunning = False
+        self.delayed = []
+        self.errorMes = ""
+
+    def onUnload(self):
+        self.counter = 0
+        self.tProperties = [0,0,0,0,0]
+        self.bIsRunning = False
+        self.cancelDelays()
+
+    def onInput_onStart(self):
+        try:
+            #start timer
+            import qi
+            import functools
+            delay_future = qi.async(self.onTimeout, delay=int(self.getParameter("Timeout (s)") * 1000 * 1000))
+            self.delayed.append(delay_future)
+            bound_clean = functools.partial(self.cleanDelay, delay_future)
+            delay_future.addCallback(bound_clean)
+
+            self.tProperties = [0,0,0,0,0]
+            self.bIsRunning = True
+            while self.bIsRunning:
+                if self.counter < 4:
+                    try:
+                        #identify user
+                        ids = ALMemory.getData("PeoplePerception/PeopleList")
+                        if len(ids) == 0:
+                            self.errorMes = "No face detected"
+                            self.onUnload()
+                        elif len(ids) > 1:
+                            self.errorMes = "Multiple faces detected"
+                            self.onUnload()
+                        else:
+                            #analyze age properties
+                            self.faceC.analyzeFaceCharacteristics(ids[0])
+                            time.sleep(0.2)
+                            properties = ALMemory.getData("PeoplePerception/Person/"+str(ids[0])+"/ExpressionProperties")
+                            self.tProperties[0] += properties[0]
+                            self.tProperties[1] += properties[1]
+                            self.tProperties[2] += properties[2]
+                            self.tProperties[3] += properties[3]
+                            self.tProperties[4] += properties[4]
+                            self.counter += 1
+                    except:
+                        ids = []
+                else:
+                    self.counter = 0
+                    recognized = [0,0,0,0,0]
+                    #calculate mean value for neutral, happy, surprised, angry or sad
+                    self.tProperties[0] /= 4
+                    self.tProperties[1] /= 4
+                    self.tProperties[2] /= 4
+                    self.tProperties[3] /= 4
+                    self.tProperties[4] /= 4
+
+                    if self.getParameter("neutral") and self.tProperties[0] > self.threshNeutralEmotion:
+                        recognized[0] = self.tProperties[0]
+                    if self.getParameter("happy") and self.tProperties[1] >self.threshHappyEmotion:
+                        recognized[1] = self.tProperties[1]
+                    if self.getParameter("surprised") and self.tProperties[2] > self.threshSurprisedEmotion:
+                        recognized[2] = self.tProperties[2]
+                    if self.getParameter("angry") and self.tProperties[3] > self.threshAngryEmotion:
+                        recognized[3] = self.tProperties[3]
+                    if self.getParameter("sad") and self.tProperties[4] > self.threshSadEmotion:
+                        recognized[4] = self.tProperties[4]
+
+                    self.tProperties = [0,0,0,0,0]
+                    try:
+                        if recognized != [0,0,0,0,0]:
+                            emotion = self.emotions[recognized.index(max(recognized))]
+                        else:
+                            emotion = None
+                    except:
+                        emotion = None
+                    try:
+                        ALMemory.removeData("PeoplePerception/Person/"+str(ids[0])+"/ExpressionProperties")
+                    except:
+                        pass
+                    if emotion != None:
+                        self.onStopped(emotion)
+                        self.onUnload()
+                        return
+            raise RuntimeError(self.errorMes)
+        except Exception as e:
+            raise RuntimeError(str(e))
+            self.onUnload()
+
+    def onTimeout(self):
+        self.errorMes = "Timeout"
+        self.onUnload()
+
+    def cleanDelay(self, fut, fut_ref):
+        self.delayed.remove(fut)
+
+    def cancelDelays(self):
+        cancel_list = list(self.delayed)
+        for d in cancel_list:
+            d.cancel()
+
+    def onInput_onStop(self):
+        self.onUnload()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" /><Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" /><Output name="onError" type="3" type_size="1" nature="1" inner="0" tooltip='Triggered when gender detection failed. &#x0A;Possible error messages:&#x0A;- &quot;No face detected&quot;&#x0A;- &quot;Multiple faces detected&quot;&#x0A;- &quot;Timeout&quot;' id="4" /><Output name="onStopped" type="3" type_size="1" nature="1" inner="0" tooltip='Returns the facial expression of the person in front of the robot. &#x0A;- &quot;neutral&quot;&#x0A;- &quot;happy&quot;&#x0A;- &quot;surprised&quot;&#x0A;- &quot;angry&quot;&#x0A;- &quot;sad&quot;&#x0A;&#x0A;Tip:&#x0A;Connect this output to a &quot;Switch Case&quot; box containing the possible output values as strings. In this way you can trigger different paths in your behavior depending on the output.' id="5" /><Parameter name="Confidence Threshold" inherits_from_parent="0" content_type="2" value="0.35" default_value="0.6" min="0" max="1" tooltip="Set the confidence threshold for the age detection." id="6" /><Parameter name="Timeout (s)" inherits_from_parent="0" content_type="2" value="10" default_value="5" min="1" max="60" tooltip="" id="7" /><Parameter name="neutral" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="8" /><Parameter name="happy" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="9" /><Parameter name="surprised" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="10" /><Parameter name="angry" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="11" /><Parameter name="sad" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="12" /></Box><Box name="_说出识别的情绪" id="6" localization="8" tooltip="Say the text received on its input." x="378" y="94"><bitmap>media/images/box/interaction/say.png</bitmap><script language="4"><content><![CDATA[import time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+        self.tts = ALProxy('ALTextToSpeech')
+        self.ttsStop = ALProxy('ALTextToSpeech', True) #Create another proxy as wait is blocking if audioout is remote
+
+    def onLoad(self):
+        self.bIsRunning = False
+        self.ids = []
+
+    def onUnload(self):
+        for id in self.ids:
+            try:
+                self.ttsStop.stop(id)
+            except:
+                pass
+        while( self.bIsRunning ):
+            time.sleep( 0.2 )
+
+    def onInput_onStart(self, p):
+        if (p == "neutral"):
+            p = "我看不出来，你的表情不是很明显"
+        elif (p == "sad"):
+            p = "你好像有点伤心"
+        elif (p == "happy"):
+            p = "你看起来很开心"
+        elif (p == "surprised"):
+            p = "你看起来很兴奋"
+        elif (p == "angry"):
+            p = "你看起来有点生气"
+        self.bIsRunning = True
+        try:
+            sentence = "\RSPD="+ str( self.getParameter("Speed (%)") ) + "\ "
+            sentence += "\VCT="+ str( self.getParameter("Voice shaping (%)") ) + "\ "
+            sentence += str(p)
+            sentence +=  "\RST\ "
+            id = self.tts.post.say(str(sentence))
+            self.ids.append(id)
+            self.tts.wait(id, 0)
+        finally:
+            try:
+                self.ids.remove(id)
+            except:
+                pass
+            if( self.ids == [] ):
+                self.onStopped() # activate output of the box
+                self.bIsRunning = False
+
+    def onInput_onStop(self):
+        self.onUnload()]]></content></script><Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" /><Input name="onStart" type="3" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this Input." id="2" /><Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this Input." id="3" /><Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when Box behavior is finished." id="4" /><Parameter name="Voice shaping (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.' id="5" /><Parameter name="Speed (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed." id="6" /><Resource name="Speech" type="Lock" timeout="0" /></Box><Link inputowner="6" indexofinput="2" outputowner="5" indexofoutput="5" /><Link inputowner="5" indexofinput="2" outputowner="0" indexofoutput="2" /><Link inputowner="0" indexofinput="4" outputowner="6" indexofoutput="4" /><Link inputowner="0" indexofinput="3" outputowner="5" indexofoutput="4" /></Diagram></BehaviorKeyframe></BehaviorLayer></Timeline></Box><Link inputowner="2" indexofinput="2" outputowner="1" indexofoutput="4" /><Link inputowner="1" indexofinput="2" outputowner="7" indexofoutput="4" /><Link inputowner="7" indexofinput="2" outputowner="0" indexofoutput="2" /><Link inputowner="0" indexofinput="4" outputowner="2" indexofoutput="4" /><Link inputowner="0" indexofinput="4" outputowner="1" indexofoutput="3" /><Link inputowner="0" indexofinput="4" outputowner="7" indexofoutput="3" /><Link inputowner="0" indexofinput="4" outputowner="2" indexofoutput="3" /></Diagram></BehaviorKeyframe></BehaviorLayer></Timeline></Box></ChoregrapheProject>
