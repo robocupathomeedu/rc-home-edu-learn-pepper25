@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package uuid="-43e505" version="0.0.0">
+ <names>
+  <name lang="en_US">基础移动</name>
+  <name lang="zh_CN">基础移动</name>
+ </names>
+ <supportedLanguages>
+  <language>en_US</language>
+  <language>zh_CN</language>
+ </supportedLanguages>
+ <descriptionLanguages>
+  <language>en_US</language>
+  <language>zh_CN</language>
+ </descriptionLanguages>
+ <contents>
+  <behaviorContent path="behavior_1">
+   <userRequestable/>
+   <nature>interactive</nature>
+   <triggerSentences/>
+   <loadingResponses/>
+   <autonomous/>
+   <permissions/>
+  </behaviorContent>
+ </contents>
+</package>
