@@ -1,0 +1,21 @@
+topic: ~my_dialog()
+language: enu
+
+concept:(greeting) [hello morning hi "good morning"]
+concept:(dance) [ "dance please" "can you dance?" "dance for us"]
+concept:(positive) [yes  "I have pets" sure]
+concept:(negtive) [no "no, i don't" "I don't have pets" nope]
+concept:(ending) [Bye Bye-Bye "see you next time" "see you tomorrow"]
+
+u:(What's your name?) My name is Pepper
+u:(~greeting) ~greeting ,could we talk something about raising pets? you have pets?
+    u1:(~positive) it's a cat?
+        u2:(~positive) cat is surely cute.
+        u2:(~negtive) it must be cute with whatever you have
+    u1:(~negtive) coincidentally, i don't have one either
+u:(~dance) for sure，please wait $start_dance=1
+
+u:({pepper}I want to eat _["grape" "coin" "barbecue"]) great, I will remember it and you want to eat $1 $food = $1
+u:(what do i want to eat just now?)I want to eat $food
+u:(I don't want to eat it) OK，I had cancelled your order ^clear(food)
+u:({pepper}~ending{pepper}) ~ending I will miss you $over=1
