@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package version="0.0.0" uuid="timeline_tutorial-292ea2">
+ <names>
+  <name lang="en_US">timeline_tutorial</name>
+ </names>
+ <descriptions>
+  <description lang="en_US">timeline指令盒的介绍与功能检验</description>
+ </descriptions>
+ <supportedLanguages>
+  <language>en_US</language>
+  <language>zh_CN</language>
+ </supportedLanguages>
+ <descriptionLanguages>
+  <language>en_US</language>
+  <language>zh_CN</language>
+ </descriptionLanguages>
+ <contents>
+  <behaviorContent path="behavior_1">
+   <userRequestable/>
+   <nature>interactive</nature>
+   <permissions/>
+  </behaviorContent>
+ </contents>
+</package>

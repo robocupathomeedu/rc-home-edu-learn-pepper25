@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package version="0.0.0" uuid="preset_animation_tutorial-84a1f0">
+ <names>
+  <name lang="en_US">preset_animation_tutorial</name>
+ </names>
+ <descriptions>
+  <description lang="en_US">检验Pepper机器人预设动作功能</description>
+ </descriptions>
+ <supportedLanguages>
+  <language>en_US</language>
+  <language>zh_CN</language>
+ </supportedLanguages>
+ <descriptionLanguages>
+  <language>en_US</language>
+  <language>zh_CN</language>
+ </descriptionLanguages>
+ <contents>
+  <behaviorContent path="behavior_1">
+   <userRequestable/>
+   <nature>interactive</nature>
+   <triggerSentences/>
+   <loadingResponses/>
+   <autonomous/>
+   <permissions/>
+  </behaviorContent>
+ </contents>
+</package>
