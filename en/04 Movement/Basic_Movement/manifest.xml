@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package version="0.0.0" uuid="-43e505">
+ <names>
+  <name lang="en_US">Basic Movement</name>
+  <name lang="zh_CN">基础移动</name>
+ </names>
+ <supportedLanguages>
+  <language>en_US</language>
+  <language>zh_CN</language>
+ </supportedLanguages>
+ <descriptionLanguages>
+  <language>en_US</language>
+  <language>zh_CN</language>
+ </descriptionLanguages>
+ <contents>
+  <behaviorContent path="behavior_1">
+   <userRequestable/>
+   <nature>interactive</nature>
+   <permissions/>
+  </behaviorContent>
+ </contents>
+</package>
